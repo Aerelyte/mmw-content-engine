@@ -1,0 +1,13 @@
+{
+  "name": "mmw-content-engine",
+  "version": "1.0.0",
+  "description": "AI-powered sitemap and copy generator for Medical Marketing Whiz client websites.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
