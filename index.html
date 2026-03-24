@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MMW Content Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Serif+Display&display=swap');
+
+:root {
+  --bg: #f7f6f3;
+  --surface: #ffffff;
+  --surface2: #f2f1ee;
+  --border: #e4e2dc;
+  --border2: #d0cec7;
+  --text: #1a1917;
+  --muted: #6b6960;
+  --muted2: #9b9990;
+  --accent: #2563eb;
+  --accent-bg: #eff6ff;
+  --accent-text: #1d4ed8;
+  --success: #16a34a;
+  --success-bg: #f0fdf4;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+
+.logo em { color: var(--accent); font-style: normal; }
+
+.stage-bar { display: flex; align-items: center; gap: 4px; }
+
+.pill {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--bg);
+  transition: all 0.15s;
+}
+
+.pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.pill.done {
+  background: var(--success-bg);
+  border-color: #bbf7d0;
+  color: var(--success);
+}
+
+.arrow { color: var(--muted2); font-size: 10px; }
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.card-sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* Upload zones */
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: 10px;
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--bg);
+  position: relative;
+}
+
+.zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+
+.zone:hover, .zone.drag { border-color: var(--accent); background: var(--accent-bg); }
+
+.zone.has-file {
+  border-color: #86efac;
+  background: var(--success-bg);
+  border-style: solid;
+}
+
+.zone-icon { font-size: 28px; margin-bottom: 8px; }
+.zone-label { font-weight: 500; font-size: 13px; margin-bottom: 3px; }
+.zone-hint { font-size: 12px; color: var(--muted); }
+.zone-filename { font-size: 12px; color: var(--success); font-weight: 500; margin-top: 6px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text);
+  transition: all 0.15s;
+}
+
+.btn:hover:not(:disabled) { background: var(--bg); border-color: var(--muted2); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--accent); color: white; border-color: var(--accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1d4ed8; border-color: #1d4ed8;
+}
+
+.btn-row { display: flex; gap: 8px; margin-top: 18px; align-items: center; flex-wrap: wrap; }
+
+/* Status text */
+.status-text { font-size: 12px; color: var(--muted); }
+.status-text.err { color: var(--danger); }
+.status-text.ok { color: var(--success); }
+
+/* Parsed data grid */
+.parsed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+
+.parsed-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.pk { font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted2); margin-bottom: 3px; font-weight: 500; }
+.pv { font-size: 13px; color: var(--text); }
+.pv.gap { color: var(--warn); }
+
+.gap-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 500;
+  background: var(--warn-bg); color: var(--warn);
+  border: 1px solid #fde68a; padding: 1px 7px; border-radius: 4px;
+}
+
+/* Notice */
+.notice {
+  padding: 10px 14px; border-radius: 8px; font-size: 13px;
+  margin-bottom: 16px; border: 1px solid; line-height: 1.5;
+}
+.notice-info { background: var(--accent-bg); border-color: #bfdbfe; color: var(--accent-text); }
+.notice-warn { background: var(--warn-bg); border-color: #fde68a; color: var(--warn); }
+.notice-ok { background: var(--success-bg); border-color: #bbf7d0; color: var(--success); }
+.notice-danger { background: var(--danger-bg); border-color: #fecaca; color: var(--danger); }
+
+/* Sitemap table */
+.sitemap-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+.sitemap-table th {
+  text-align: left; padding: 8px 10px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px;
+  color: var(--muted2); border-bottom: 1px solid var(--border); font-weight: 500;
+}
+.sitemap-table td { padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.4; }
+.sitemap-table tr:last-child td { border-bottom: none; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+.badge-core { background: var(--accent-bg); color: var(--accent-text); }
+.badge-service { background: var(--success-bg); color: var(--success); }
+.badge-support { background: var(--warn-bg); color: var(--warn); }
+
+.url-chip {
+  font-family: monospace; font-size: 11px;
+  background: var(--surface2); color: var(--muted);
+  padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);
+}
+
+/* Additional pages */
+.add-section-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px;
+  color: var(--muted2); font-weight: 500;
+  padding-top: 16px; margin-top: 16px; margin-bottom: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.add-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.add-row:last-child { border-bottom: none; }
+.add-num {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border-radius: 50%; border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--muted); margin-top: 1px;
+}
+.add-name { font-weight: 500; font-size: 13px; margin-bottom: 2px; }
+.add-rat { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.val-high { font-size: 11px; font-weight: 500; background: var(--success-bg); color: var(--success); padding: 2px 8px; border-radius: 4px; white-space: nowrap; border: 1px solid #bbf7d0; }
+.val-med { font-size: 11px; font-weight: 500; background: var(--warn-bg); color: var(--warn); padding: 2px 8px; border-radius: 4px; white-space: nowrap; border: 1px solid #fde68a; }
+
+/* Progress */
+.prog-wrap { margin-bottom: 16px; }
+.prog-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+.prog-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.35s; }
+
+/* Page rows */
+.page-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: 8px;
+  border: 1px solid var(--border); margin-bottom: 6px;
+  background: var(--surface); transition: all 0.15s;
+}
+.page-row.clickable { cursor: pointer; }
+.page-row.clickable:hover { background: var(--surface2); border-color: var(--border2); }
+.pr-name { font-weight: 500; font-size: 13px; }
+.pr-url { font-size: 11px; color: var(--muted); font-family: monospace; }
+.pr-status { font-size: 12px; font-weight: 500; padding: 2px 9px; border-radius: 4px; white-space: nowrap; }
+.s-q { background: var(--surface2); color: var(--muted2); }
+.s-g { background: var(--accent-bg); color: var(--accent-text); }
+.s-done { background: var(--success-bg); color: var(--success); }
+.s-gap { background: var(--warn-bg); color: var(--warn); }
+.s-err { background: var(--danger-bg); color: var(--danger); }
+
+/* Viewer */
+.tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 16px; gap: 2px; }
+.tab {
+  padding: 8px 16px; font-size: 13px; color: var(--muted);
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font-weight: 500; transition: all 0.1s;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.viewer { max-height: 540px; overflow-y: auto; }
+
+.copy-sec { margin-bottom: 20px; }
+.copy-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.9px;
+  color: var(--accent-text); font-weight: 500; margin-bottom: 6px;
+  display: inline-block; background: var(--accent-bg); padding: 2px 8px; border-radius: 4px;
+}
+.copy-content { font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; }
+.copy-gap {
+  background: var(--warn-bg); border: 1px solid #fde68a; border-radius: 6px;
+  padding: 8px 12px; color: var(--warn); font-size: 12px; font-style: italic; margin: 6px 0;
+}
+
+.seo-row { margin-bottom: 14px; }
+.seo-key { font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted2); font-weight: 500; margin-bottom: 4px; }
+.seo-val { font-size: 13px; color: var(--text); line-height: 1.6; }
+.seo-val.mono { font-family: monospace; font-size: 12px; background: var(--surface2); padding: 10px; border-radius: 6px; white-space: pre-wrap; border: 1px solid var(--border); overflow-x: auto; }
+
+.aeo-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+.aeo-q { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+.aeo-a { font-size: 13px; line-height: 1.6; }
+
+.gap-item {
+  border-left: 3px solid #fde68a; padding: 10px 14px; margin-bottom: 8px;
+  background: var(--surface2); border-radius: 0 8px 8px 0;
+}
+.gap-sec { font-size: 11px; color: var(--muted2); margin-bottom: 3px; }
+.gap-missing { font-size: 13px; margin-bottom: 6px; }
+.gap-req { font-size: 12px; color: var(--muted); font-style: italic; }
+.blocks { font-size: 11px; font-weight: 500; color: var(--danger); }
+.safe { font-size: 11px; font-weight: 500; color: var(--success); }
+
+/* Download grid */
+.dl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.dl-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.dl-title { font-weight: 500; font-size: 13px; }
+.dl-meta { font-size: 12px; color: var(--muted); flex: 1; line-height: 1.4; }
+
+/* Spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
+
+.step { display: none; }
+.step.active { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">MMW <em>Content Engine</em></div>
+  <div class="stage-bar" id="stageBar">
+    <span class="pill active" id="pill-1">1. Upload</span>
+    <span class="arrow">›</span>
+    <span class="pill" id="pill-2">2. Review data</span>
+    <span class="arrow">›</span>
+    <span class="pill" id="pill-3">3. Sitemap</span>
+    <span class="arrow">›</span>
+    <span class="pill" id="pill-4">4. Generate copy</span>
+    <span class="arrow">›</span>
+    <span class="pill" id="pill-5">5. Export</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- STEP 1 -->
+  <div class="step active" id="step-1">
+    <div class="card">
+      <div class="card-title">Upload client documents</div>
+      <div class="card-sub">Upload the onboarding form and master record. PDF and DOCX are both supported. You can upload just one if that's all you have.</div>
+      <div class="upload-grid">
+        <div class="zone" id="zone-onboarding"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event,'onboarding')">
+          <input type="file" accept=".pdf,.docx,.doc,.txt" onchange="handleFile(event,'onboarding')">
+          <div class="zone-icon">📋</div>
+          <div class="zone-label">Onboarding form</div>
+          <div class="zone-hint">PDF or DOCX</div>
+          <div class="zone-filename" id="fn-onboarding"></div>
+        </div>
+        <div class="zone" id="zone-master"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event,'master')">
+          <input type="file" accept=".pdf,.docx,.doc,.txt" onchange="handleFile(event,'master')">
+          <div class="zone-icon">📁</div>
+          <div class="zone-label">Master record</div>
+          <div class="zone-hint">PDF or DOCX export from ClickUp</div>
+          <div class="zone-filename" id="fn-master"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="parseBtn" disabled onclick="parseDocuments()">
+          Parse documents
+        </button>
+        <span class="status-text" id="parseStatus">Upload at least one document to continue</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="step-2">
+    <div class="notice notice-info">Review the extracted data below. Items marked ⚠ Missing are gaps that will appear in the gap report.</div>
+    <div class="card">
+      <div class="card-title">Extracted client data</div>
+      <div class="card-sub">Confirm this is accurate before proceeding to sitemap generation.</div>
+      <div class="parsed-grid" id="parsedGrid"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="sitemapBtn" onclick="generateSitemap()">Generate sitemap</button>
+        <button class="btn" onclick="goTo(1)">← Re-upload</button>
+        <span class="status-text" id="sitemapStatus"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step" id="step-3">
+    <div class="notice notice-info">Review the recommended sitemap. Export it, make edits, then re-upload to proceed — or approve as-is.</div>
+    <div class="card">
+      <div class="card-title" id="sitemapTitle">Sitemap</div>
+      <div class="card-sub">10-page standard build. Service pages ranked by revenue priority and local SEO value.</div>
+      <table class="sitemap-table">
+        <thead><tr><th>#</th><th>Page</th><th>URL</th><th>Type</th><th>Rationale</th></tr></thead>
+        <tbody id="sitemapBody"></tbody>
+      </table>
+      <div class="add-section-title">Recommended additional pages — upsell opportunities</div>
+      <div id="addPagesBody"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="approveAndGenerate()">Approve & generate copy</button>
+        <button class="btn" onclick="exportSitemap()">↓ Export sitemap</button>
+        <label class="btn" style="cursor:pointer">
+          ↑ Re-upload edited sitemap
+          <input type="file" style="display:none" accept=".txt" onchange="reuploadSitemap(event)">
+        </label>
+        <button class="btn" onclick="goTo(2)">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step" id="step-4">
+    <div class="card">
+      <div class="card-title">Copy generation</div>
+      <div class="card-sub">Pages generate one at a time. Click any completed page to preview its copy, SEO package, and gap flags.</div>
+      <div class="prog-wrap">
+        <div class="prog-header">
+          <span id="progLabel">Starting...</span>
+          <span id="progPct" style="color:var(--accent);font-weight:500">0%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      </div>
+      <div id="pagesList"></div>
+    </div>
+
+    <div class="card" id="viewerCard" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" id="viewerTitle">Page copy</div>
+        <button class="btn" style="padding:5px 12px;font-size:12px" onclick="document.getElementById('viewerCard').style.display='none'">✕ Close</button>
+      </div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'tcopy')">Copy</div>
+        <div class="tab" onclick="switchTab(this,'tseo')">SEO + AEO package</div>
+        <div class="tab" onclick="switchTab(this,'tgaps')">Gap flags</div>
+      </div>
+      <div class="viewer" id="tcopy"></div>
+      <div class="viewer" id="tseo" style="display:none"></div>
+      <div class="viewer" id="tgaps" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step" id="step-5">
+    <div class="notice notice-ok">All pages generated. Download individual pages or the full package below.</div>
+    <div class="card">
+      <div class="card-title">Export package</div>
+      <div class="card-sub">Each file includes copy sections, SEO metadata, AEO content blocks, FAQ schema (JSON-LD), and gap flags.</div>
+      <div class="dl-grid" id="dlGrid"></div>
+      <div class="btn-row" style="margin-top:20px">
+        <button class="btn btn-primary" onclick="downloadAll()">↓ Download full package</button>
+        <button class="btn" onclick="toggleGapReport()">View gap report</button>
+      </div>
+    </div>
+    <div class="card" id="gapCard" style="display:none">
+      <div class="card-title">Consolidated gap report</div>
+      <div class="card-sub">Items that must be resolved before publishing are marked accordingly.</div>
+      <div id="gapBody" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const S = {
+  files: { onboarding: null, master: null },
+  parsedData: null,
+  sitemap: null,
+  pages: [],
+  content: {}
+};
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function goTo(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  for (let i = 1; i <= 5; i++) {
+    const p = document.getElementById('pill-' + i);
+    p.className = 'pill' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+  window.scrollTo(0, 0);
+}
+
+function switchTab(el, id) {
+  el.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['tcopy','tseo','tgaps'].forEach(tid => {
+    document.getElementById(tid).style.display = tid === id ? 'block' : 'none';
+  });
+}
+
+// ── File handling ─────────────────────────────────────────────────────────────
+function handleDrop(e, type) {
+  e.preventDefault();
+  document.getElementById('zone-' + type).classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) setFile(file, type);
+}
+
+function handleFile(e, type) {
+  const file = e.target.files[0];
+  if (file) setFile(file, type);
+}
+
+function setFile(file, type) {
+  S.files[type] = file;
+  document.getElementById('zone-' + type).classList.add('has-file');
+  document.getElementById('fn-' + type).textContent = '✓ ' + file.name;
+  checkReady();
+}
+
+function checkReady() {
+  const ready = S.files.onboarding || S.files.master;
+  document.getElementById('parseBtn').disabled = !ready;
+  if (ready) {
+    document.getElementById('parseStatus').textContent = 'Ready to parse';
+    document.getElementById('parseStatus').className = 'status-text ok';
+  }
+}
+
+// ── Parse documents ───────────────────────────────────────────────────────────
+async function parseDocuments() {
+  const btn = document.getElementById('parseBtn');
+  const status = document.getElementById('parseStatus');
+  btn.disabled = true;
+  status.innerHTML = '<span class="spinner"></span> Parsing documents...';
+  status.className = 'status-text';
+
+  try {
+    const form = new FormData();
+    if (S.files.onboarding) form.append('onboarding', S.files.onboarding);
+    if (S.files.master) form.append('master', S.files.master);
+
+    const res = await fetch('/api/parse', { method: 'POST', body: form });
+    const text = await res.text();
+
+    if (!res.ok) {
+      const err = JSON.parse(text);
+      throw new Error(err.error || 'Server error ' + res.status);
+    }
+
+    S.parsedData = JSON.parse(text);
+    renderParsed();
+    goTo(2);
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+    status.className = 'status-text err';
+    btn.disabled = false;
+  }
+}
+
+function renderParsed() {
+  const d = S.parsedData;
+  const fields = [
+    ['Practice name', d.practiceName],
+    ['Website', d.website],
+    ['Primary location', d.primaryLocation],
+    ['Provider', (d.providerName||'') + ' ' + (d.providerCredentials||'')],
+    ['Target patient', d.targetDemographic],
+    ['Brand voice', d.brandVoice],
+    ['#1 service', d.service1],
+    ['#2 service', d.service2],
+    ['#3 service', d.service3],
+    ['Virtual care', d.virtualCare ? 'Yes — ' + ((d.virtualStates||[]).join(', ')||'states TBD') : 'No'],
+    ['Target cities', (d.targetCities||[]).join(', ')||null],
+    ['Brand colors', d.brandColors],
+    ['Devices', (d.devices||[]).slice(0,3).join(', ')||null],
+    ['Words to avoid', (d.wordsToAvoid||[]).join(', ')||null],
+  ];
+  document.getElementById('parsedGrid').innerHTML = fields.map(([k,v]) => {
+    const gap = !v || String(v).startsWith('GAP:') || !String(v).trim() || String(v) === 'null';
+    return `<div class="parsed-item">
+      <div class="pk">${k}</div>
+      <div class="pv${gap?' gap':''}">
+        ${gap ? '<span class="gap-badge">⚠ Missing</span>' : String(v).substring(0,90)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Generate sitemap ──────────────────────────────────────────────────────────
+async function generateSitemap() {
+  const btn = document.getElementById('sitemapBtn');
+  const status = document.getElementById('sitemapStatus');
+  btn.disabled = true;
+  status.innerHTML = '<span class="spinner"></span> Generating sitemap...';
+
+  try {
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: `You are an expert local SEO strategist for medical clinic websites. Generate the optimal 10-page sitemap.
+
+CLIENT DATA: ${JSON.stringify(S.parsedData)}
+
+RULES:
+1. Fixed pages: Home (/), About (/about/), Contact (/contact/)
+2. Fill remaining 7 slots ranked by: client service priority, revenue potential, local keyword volume, in-person vs virtual (in-person scores higher for local SEO)
+3. Include a FAQ page if services involve complex patient education decisions
+4. URL slugs: lowercase hyphenated, service+city format where appropriate (e.g. /bioidentical-hormone-therapy-batavia-il/)
+5. After the 10 pages, recommend up to 8 additional pages in priority order with value rating
+
+Return ONLY valid JSON, no markdown:
+{"pages":[{"number":1,"name":"Home","url":"/","type":"core","rationale":"..."}],"additionalPages":[{"priority":1,"name":"...","url":"/...","type":"...","value":"high","rationale":"..."}]}`
+        }]
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+
+    let raw = data.content[0].text.trim()
+      .replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+    S.sitemap = JSON.parse(raw);
+    renderSitemap();
+    goTo(3);
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+    status.className = 'status-text err';
+  } finally {
+    btn.disabled = false;
+    if (!status.className.includes('err')) status.innerHTML = '';
+  }
+}
+
+function renderSitemap() {
+  document.getElementById('sitemapTitle').textContent = 'Sitemap — ' + (S.parsedData.practiceName||'Client');
+  const typeMap = { core:'badge-core', service:'badge-service', support:'badge-support' };
+  document.getElementById('sitemapBody').innerHTML = S.sitemap.pages.map(p =>
+    `<tr>
+      <td style="color:var(--muted2);font-size:12px">${p.number}</td>
+      <td style="font-weight:500">${p.name}</td>
+      <td><span class="url-chip">${p.url}</span></td>
+      <td><span class="badge ${typeMap[p.type]||'badge-support'}">${p.type}</span></td>
+      <td style="color:var(--muted);font-size:12px">${p.rationale}</td>
+    </tr>`
+  ).join('');
+
+  document.getElementById('addPagesBody').innerHTML = S.sitemap.additionalPages.map((p,i) =>
+    `<div class="add-row">
+      <div class="add-num">${i+1}</div>
+      <div style="flex:1">
+        <div class="add-name">${p.name} <span class="url-chip">${p.url}</span></div>
+        <div class="add-rat">${p.rationale}</div>
+      </div>
+      <span class="${p.value==='high'?'val-high':'val-med'}">${p.value==='high'?'↑ High value':'Medium'}</span>
+    </div>`
+  ).join('');
+}
+
+function exportSitemap() {
+  const lines = ['MMW SITEMAP — ' + (S.parsedData.practiceName||'Client'), new Date().toLocaleDateString(), ''];
+  S.sitemap.pages.forEach(p => {
+    lines.push(p.number + '. ' + p.name);
+    lines.push('   URL: ' + p.url);
+    lines.push('   Type: ' + p.type);
+    lines.push('   Rationale: ' + p.rationale);
+    lines.push('');
+  });
+  lines.push('=== ADDITIONAL PAGE RECOMMENDATIONS ===', '');
+  S.sitemap.additionalPages.forEach((p,i) => {
+    lines.push((i+1) + '. ' + p.name + ' [' + p.value + ' value]');
+    lines.push('   URL: ' + p.url);
+    lines.push('   ' + p.rationale);
+    lines.push('');
+  });
+  dl(lines.join('\n'), (S.parsedData.practiceName||'client').replace(/\s+/g,'_') + '_sitemap.txt');
+}
+
+function reuploadSitemap(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const notice = document.createElement('div');
+  notice.className = 'notice notice-ok'; notice.style.marginBottom = '12px';
+  notice.textContent = '✓ Updated sitemap uploaded. Click "Approve & generate copy" to proceed.';
+  document.getElementById('step-3').insertBefore(notice, document.querySelector('#step-3 .card'));
+}
+
+// ── Copy generation ───────────────────────────────────────────────────────────
+const SYSTEM = `You are a senior healthcare content strategist and local SEO specialist for Medical Marketing Whiz, a digital marketing agency serving local medical clinic owners.
+
+TONE MODIFIERS — apply based on service category:
+- Clinical/Trust-Heavy (BHRT, thyroid, functional medicine, chronic illness, weight loss, longevity): Lead with empathy and validation. Measured, credible language. Root-cause framing. No hype. No urgency-based sales language.
+- Aesthetic/Desire-Driven (laser, fillers, body contouring, skin rejuvenation, microneedling): Lead with aspiration and outcome. Results-focused but realistic. Warmer tone.
+- Hormonal/Intimate Health (sexual wellness, ED, libido, menopause, vaginal): Normalize and dignify. No clinical coldness or sensationalism. Privacy implied through tone.
+- Regenerative/Advanced Modalities (ozone, IV therapy, peptides, PRP, shockwave): Plain language mechanism. Emphasize integration into a personalized plan. Ground in clinical rationale.
+
+LOCAL SEO RULES:
+- H1, first paragraph, page title, and meta description must naturally include Service + Primary City + State
+- Work city name into copy 3-5 times naturally per service page
+- Use county and neighborhood references for local signal
+- URL slugs: lowercase hyphenated, service+city format (/bioidentical-hormone-therapy-batavia-il/)
+
+AEO CONTENT BLOCKS — write 3-4 standalone passages optimized for answer engines:
+- "What is [service]?" — first sentence is a complete standalone answer, 2-3 supporting sentences follow
+- "Who is a good candidate for [service]?" — direct, list-friendly
+- "How does [service] work?" — step-based, scannable
+- "What does [service] treat?" — condition-focused
+These are body copy passages that generative AI (ChatGPT, Perplexity, Google AI Overviews) will pull from.
+
+FAQ SCHEMA — provide 5-6 Q&A pairs formatted for FAQ schema JSON-LD markup:
+- Questions written exactly as patients ask them (conversational language)
+- Each answer begins with the direct response in sentence one
+- These appear both as visible FAQ on the page AND as structured data
+
+GEO RULES:
+- Use practice name naturally in body copy ("At [Practice Name], we...")
+- Reference provider full name + credentials at least once per page
+- Repeat the practice's core specialization across pages
+
+UNIVERSAL WORDS/CLAIMS TO AVOID: "cure/cures", "guaranteed results", "best in [city]" (unless from verifiable award), diagnoses stated as fact
+
+GAP FORMAT — when information is missing use exactly:
+[GAP — FIELD: what is missing. Section: section name. Request: "suggested request language to send client"]
+
+DEVICE HANDLING:
+- Most devices: mention within the relevant service page as a differentiator, NOT a separate page
+- Standalone page candidates (have their own search volume): Morpheus8, CoolSculpting, Emsculpt/Neo, HydraFacial, Ultherapy, Sculptra
+
+OUTPUT: Return ONLY a valid JSON object, no markdown, no backticks:
+{
+  "pageName": "",
+  "url": "",
+  "pageTitle": "",
+  "metaDescription": "",
+  "schemaType": "",
+  "h1": "",
+  "toneModifier": "",
+  "sections": [{"label": "", "content": ""}],
+  "aeoBlocks": [{"question": "", "answer": ""}],
+  "faqSchema": [{"q": "", "a": ""}],
+  "seoNotes": "",
+  "gapFlags": [{"section": "", "missing": "", "blocksPublish": true, "requestLanguage": ""}]
+}`;
+
+async function approveAndGenerate() {
+  goTo(4);
+  S.pages = S.sitemap.pages;
+  document.getElementById('pagesList').innerHTML = S.pages.map((p,i) =>
+    `<div class="page-row" id="prow-${i}">
+      <div style="flex:1">
+        <div class="pr-name">${p.name}</div>
+        <div class="pr-url">${p.url}</div>
+      </div>
+      <span class="pr-status s-q" id="pstat-${i}">Queued</span>
+    </div>`
+  ).join('');
+  await generateAllPages();
+}
+
+async function generateAllPages() {
+  const total = S.pages.length;
+  for (let i = 0; i < total; i++) {
+    const page = S.pages[i];
+    setPct(i, total, page.name);
+    document.getElementById('pstat-'+i).className = 'pr-status s-g';
+    document.getElementById('pstat-'+i).innerHTML = '<span class="spinner"></span>';
+
+    try {
+      const d = S.parsedData;
+      const prompt = `Generate complete website copy for this page.
+
+PAGE: ${page.name}
+URL: ${page.url}
+TYPE: ${page.type}
+
+CLIENT:
+- Practice: ${d.practiceName}
+- Location: ${d.primaryLocation}
+- Provider: ${d.providerName} (${d.providerCredentials})
+- Brand voice: ${d.brandVoice}
+- Tone descriptors: ${(d.toneDescriptors||[]).join(', ')}
+- #1 Service: ${d.service1}
+- #2 Service: ${d.service2}
+- #3 Service: ${d.service3}
+- All services: ${(d.allServices||[]).slice(0,15).join(', ')}
+- Target demographic: ${d.targetDemographic}
+- Primary city: ${d.primaryLocation}
+- Target cities: ${(d.targetCities||[]).join(', ')}
+- Unique positioning: ${d.uniquePositioning}
+- Words to avoid: ${(d.wordsToAvoid||[]).join(', ')}
+- Devices: ${(d.devices||[]).join(', ')}
+- Virtual care: ${d.virtualCare}
+
+Apply the correct tone modifier for this page/service type. Follow all SEO, AEO, GEO rules. Include aeoBlocks and faqSchema. Flag all gaps inline and in gapFlags.
+
+Return ONLY the JSON object.`;
+
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 4000,
+          system: SYSTEM,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+
+      let raw = data.content[0].text.trim()
+        .replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+      const parsed = JSON.parse(raw);
+      S.content[page.url] = parsed;
+
+      const hasGaps = parsed.gapFlags && parsed.gapFlags.length > 0;
+      document.getElementById('prow-'+i).classList.add('clickable');
+      document.getElementById('pstat-'+i).className = 'pr-status ' + (hasGaps ? 's-gap' : 's-done');
+      document.getElementById('pstat-'+i).textContent = hasGaps ? '⚠ ' + parsed.gapFlags.length + ' gap(s)' : '✓ Ready';
+      document.getElementById('prow-'+i).onclick = () => showViewer(page, parsed);
+
+    } catch(e) {
+      S.content[page.url] = { error: e.message };
+      document.getElementById('pstat-'+i).className = 'pr-status s-err';
+      document.getElementById('pstat-'+i).textContent = 'Error';
+      console.error('Page error:', page.name, e);
+    }
+  }
+  setPct(total, total, 'Complete');
+  document.getElementById('progLabel').textContent = '✓ All pages complete — click any page to preview';
+  setTimeout(() => { buildExport(); goTo(5); }, 700);
+}
+
+function setPct(done, total, name) {
+  const p = Math.round(done/total*100);
+  document.getElementById('progFill').style.width = p + '%';
+  document.getElementById('progPct').textContent = p + '%';
+  if (done < total) document.getElementById('progLabel').textContent =
+    'Generating: ' + name + ' (' + (done+1) + ' of ' + total + ')';
+}
+
+// ── Viewer ────────────────────────────────────────────────────────────────────
+function showViewer(page, c) {
+  document.getElementById('viewerCard').style.display = 'block';
+  document.getElementById('viewerTitle').textContent = page.name;
+
+  // Copy tab
+  document.getElementById('tcopy').innerHTML = (c.sections||[]).map(s =>
+    `<div class="copy-sec">
+      <div class="copy-label">${s.label}</div>
+      <div class="copy-content">${(s.content||'')
+        .replace(/\[GAP[^\]]*\]/g, m => '<div class="copy-gap">'+m+'</div>')
+        .replace(/\n/g,'<br>')
+      }</div>
+    </div>`
+  ).join('');
+
+  // SEO + AEO tab
+  const aeo = c.aeoBlocks || c.aeoblocks || [];
+  const faq = c.faqSchema || [];
+  const faqJsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faq.map(f => ({
+      "@type": "Question",
+      "name": f.q,
+      "acceptedAnswer": { "@type": "Answer", "text": f.a }
+    }))
+  }, null, 2);
+
+  document.getElementById('tseo').innerHTML = `
+    <div class="seo-row"><div class="seo-key">Page title</div><div class="seo-val">${c.pageTitle||'—'}</div></div>
+    <div class="seo-row"><div class="seo-key">Meta description</div><div class="seo-val">${c.metaDescription||'—'}</div></div>
+    <div class="seo-row"><div class="seo-key">H1</div><div class="seo-val">${c.h1||'—'}</div></div>
+    <div class="seo-row"><div class="seo-key">Schema type</div><div class="seo-val">${c.schemaType||'—'}</div></div>
+    <div class="seo-row"><div class="seo-key">Tone modifier applied</div><div class="seo-val">${c.toneModifier||'—'}</div></div>
+    ${aeo.length ? `<div class="seo-row"><div class="seo-key">AEO content blocks (${aeo.length})</div>
+      ${aeo.map(b => `<div class="aeo-block"><div class="aeo-q">Q: ${b.question||''}</div><div class="aeo-a">${b.answer||''}</div></div>`).join('')}
+    </div>` : ''}
+    ${faq.length ? `<div class="seo-row"><div class="seo-key">FAQ schema — ready to paste as JSON-LD</div>
+      <div class="seo-val mono">${faqJsonLd}</div>
+    </div>` : ''}
+    <div class="seo-row"><div class="seo-key">SEO notes</div><div class="seo-val">${c.seoNotes||'—'}</div></div>`;
+
+  // Gaps tab
+  const gaps = c.gapFlags||[];
+  document.getElementById('tgaps').innerHTML = gaps.length === 0
+    ? '<div style="color:var(--success);padding:12px">✓ No gaps for this page</div>'
+    : gaps.map(g => `<div class="gap-item">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <div class="gap-sec">Section: ${g.section}</div>
+          <span class="${g.blocksPublish?'blocks':'safe'}">${g.blocksPublish?'Blocks publish':'Safe to publish without'}</span>
+        </div>
+        <div class="gap-missing">${g.missing}</div>
+        <div class="gap-req">Suggested request: "${g.requestLanguage}"</div>
+      </div>`).join('');
+
+  document.getElementById('viewerCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function buildExport() {
+  document.getElementById('dlGrid').innerHTML = Object.entries(S.content).map(([url,c]) => {
+    const page = S.sitemap.pages.find(p=>p.url===url);
+    const gaps = c.gapFlags && c.gapFlags.length;
+    return `<div class="dl-card">
+      <div class="dl-title">${c.pageName||page?.name||url}</div>
+      <div class="dl-meta">${c.pageTitle||''}${gaps?'<br><span style="color:var(--warn);font-size:11px">⚠ '+gaps+' gap(s)</span>':''}</div>
+      <button class="btn" style="font-size:12px;margin-top:4px" onclick="dlPage('${url}')">↓ Download</button>
+    </div>`;
+  }).join('');
+}
+
+function pageToText(url, c) {
+  const lines = [
+    'PAGE: ' + (c.pageName||url), 'URL: ' + url,
+    'TITLE: ' + (c.pageTitle||''), 'META: ' + (c.metaDescription||''),
+    'H1: ' + (c.h1||''), 'SCHEMA: ' + (c.schemaType||''), 'TONE: ' + (c.toneModifier||''), '', '=== COPY SECTIONS ===', ''
+  ];
+  (c.sections||[]).forEach(s => { lines.push('[' + s.label + ']'); lines.push(s.content||''); lines.push(''); });
+
+  const aeo = c.aeoBlocks||c.aeoblocks||[];
+  if (aeo.length) {
+    lines.push('=== AEO CONTENT BLOCKS ===', '');
+    aeo.forEach(b => { lines.push('Q: ' + b.question); lines.push(b.answer); lines.push(''); });
+  }
+
+  const faq = c.faqSchema||[];
+  if (faq.length) {
+    lines.push('=== FAQ SCHEMA (JSON-LD) ===');
+    lines.push(JSON.stringify({ "@context":"https://schema.org","@type":"FAQPage","mainEntity":faq.map(f=>({ "@type":"Question","name":f.q,"acceptedAnswer":{"@type":"Answer","text":f.a} })) }, null, 2));
+    lines.push('');
+  }
+
+  if (c.seoNotes) { lines.push('=== SEO NOTES ==='); lines.push(c.seoNotes); lines.push(''); }
+
+  if (c.gapFlags && c.gapFlags.length) {
+    lines.push('=== GAP FLAGS ===');
+    c.gapFlags.forEach(g => {
+      lines.push('⚠ [' + g.section + '] ' + g.missing);
+      lines.push('  Blocks publish: ' + (g.blocksPublish ? 'YES' : 'No'));
+      lines.push('  Request to send client: "' + g.requestLanguage + '"');
+      lines.push('');
+    });
+  }
+  return lines.join('\n');
+}
+
+function dlPage(url) {
+  const c = S.content[url]; if (!c) return;
+  dl(pageToText(url, c), (c.pageName||'page').replace(/\s+/g,'_') + '_copy.txt');
+}
+
+function downloadAll() {
+  const d = S.parsedData;
+  const lines = ['MMW COPY PACKAGE — ' + (d.practiceName||'Client'), 'Generated: ' + new Date().toLocaleString(), '', ''];
+  Object.entries(S.content).forEach(([url,c]) => {
+    lines.push('████ ' + (c.pageName||url) + ' ████', '');
+    lines.push(pageToText(url, c));
+    lines.push('══════════════════════════════════════════════════', '');
+  });
+  lines.push('CONSOLIDATED GAP REPORT', '══════════════════════════════════════════════════', '');
+  let any = false;
+  Object.entries(S.content).forEach(([url,c]) => {
+    if (c.gapFlags && c.gapFlags.length) {
+      any = true;
+      lines.push('PAGE: ' + (c.pageName||url));
+      c.gapFlags.forEach(g => {
+        lines.push('  ⚠ ' + g.section + ': ' + g.missing);
+        lines.push('     Blocks publish: ' + (g.blocksPublish ? 'YES' : 'No'));
+        lines.push('     Request: "' + g.requestLanguage + '"');
+      });
+      lines.push('');
+    }
+  });
+  if (!any) lines.push('No gaps identified. All pages are ready for review.');
+  dl(lines.join('\n'), (d.practiceName||'client').replace(/\s+/g,'_') + '_full_package.txt');
+}
+
+function toggleGapReport() {
+  const card = document.getElementById('gapCard');
+  if (card.style.display === 'none') {
+    card.style.display = 'block';
+    const allGaps = [];
+    Object.entries(S.content).forEach(([url,c]) => {
+      (c.gapFlags||[]).forEach(g => allGaps.push({ page: c.pageName||url, ...g }));
+    });
+    document.getElementById('gapBody').innerHTML = allGaps.length === 0
+      ? '<div style="color:var(--success)">✓ No gaps identified across all pages.</div>'
+      : allGaps.map(g => `<div class="gap-item">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <div><strong>${g.page}</strong> — <span class="gap-sec" style="display:inline">${g.section}</span></div>
+            <span class="${g.blocksPublish?'blocks':'safe'}">${g.blocksPublish?'Blocks publish':'Safe to publish'}</span>
+          </div>
+          <div class="gap-missing">${g.missing}</div>
+          <div class="gap-req">Request: "${g.requestLanguage}"</div>
+        </div>`).join('');
+  } else {
+    card.style.display = 'none';
+  }
+}
+
+function dl(text, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = filename;
+  a.click();
+}
+</script>
+</body>
+</html>
