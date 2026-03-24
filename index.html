@@ -405,7 +405,7 @@ main {
       <div class="card-title" id="sitemapTitle">Sitemap</div>
       <div class="card-sub">10-page standard build. Service pages ranked by revenue priority and local SEO value.</div>
       <table class="sitemap-table">
-        <thead><tr><th>#</th><th>Page</th><th>URL</th><th>Type</th><th>Rationale</th></tr></thead>
+        <thead><tr><th>#</th><th>Page</th><th>URL</th><th>Nav</th><th>Type</th><th>Rationale</th></tr></thead>
         <tbody id="sitemapBody"></tbody>
       </table>
       <div class="add-section-title">Recommended additional pages — upsell opportunities</div>
@@ -415,7 +415,7 @@ main {
         <button class="btn" onclick="exportSitemap()">↓ Export sitemap</button>
         <label class="btn" style="cursor:pointer">
           ↑ Re-upload edited sitemap
-          <input type="file" style="display:none" accept=".txt" onchange="reuploadSitemap(event)">
+          <input type="file" style="display:none" accept=".txt,.csv" onchange="reuploadSitemap(event)">
         </label>
         <button class="btn" onclick="goTo(2)">← Back</button>
       </div>
@@ -611,15 +611,32 @@ async function generateSitemap() {
 
 CLIENT DATA: ${JSON.stringify(S.parsedData)}
 
-RULES:
-1. Fixed pages: Home (/), About (/about/), Contact (/contact/)
-2. Fill remaining 7 slots ranked by: client service priority, revenue potential, local keyword volume, in-person vs virtual (in-person scores higher for local SEO)
-3. Include a FAQ page if services involve complex patient education decisions
-4. URL slugs: lowercase hyphenated, service+city format where appropriate (e.g. /bioidentical-hormone-therapy-batavia-il/)
-5. After the 10 pages, recommend up to 8 additional pages in priority order with value rating
+URL HIERARCHY RULES — strictly enforce these:
+- Home: /
+- About: /about/
+- Contact: /contact/
+- All service pages: /services/[service-slug-city-state]/ (e.g. /services/bioidentical-hormone-therapy-batavia-il/)
+- FAQ and educational content: /resources/faq/
+- Blog: /resources/blog/
+- New patient info: /resources/new-patient/
+- Service areas: /resources/service-areas/
+- Telehealth pages: /services/telehealth-[service]-illinois/
+
+NAV STRUCTURE — every page must be assigned a navSection from: Home, About, Services, Resources, Contact
+- Home → Home
+- About page → About
+- All service pages → Services
+- FAQ, blog, educational pages → Resources
+- Contact → Contact
+
+SITEMAP RULES:
+1. Fixed pages: Home, About, Contact (3 pages)
+2. Fill remaining 7 slots: prioritize by revenue potential, local keyword volume, service priority from client data
+3. Include FAQ under /resources/faq/ if services involve complex patient decisions
+4. After the 10 pages, recommend up to 8 additional pages in priority order with value rating — also assign navSection and proper URL hierarchy to each
 
 Return ONLY valid JSON, no markdown:
-{"pages":[{"number":1,"name":"Home","url":"/","type":"core","rationale":"..."}],"additionalPages":[{"priority":1,"name":"...","url":"/...","type":"...","value":"high","rationale":"..."}]}`
+{"pages":[{"number":1,"name":"Home","url":"/","type":"core","navSection":"Home","rationale":"..."}],"additionalPages":[{"priority":1,"name":"...","url":"/...","type":"...","navSection":"...","value":"high","rationale":"..."}]}`
         }]
       })
     });
@@ -643,12 +660,13 @@ Return ONLY valid JSON, no markdown:
 
 function renderSitemap() {
   document.getElementById('sitemapTitle').textContent = 'Sitemap — ' + (S.parsedData.practiceName||'Client');
-  const typeMap = { core:'badge-core', service:'badge-service', support:'badge-support' };
+  const typeMap = { core:'badge-core', service:'badge-service', 'service-location':'badge-service', support:'badge-support', educational:'badge-support' };
   document.getElementById('sitemapBody').innerHTML = S.sitemap.pages.map(p =>
     `<tr>
       <td style="color:var(--muted2);font-size:12px">${p.number}</td>
       <td style="font-weight:500">${p.name}</td>
       <td><span class="url-chip">${p.url}</span></td>
+      <td style="font-size:12px;color:var(--muted);font-weight:500">${p.navSection||'—'}</td>
       <td><span class="badge ${typeMap[p.type]||'badge-support'}">${p.type}</span></td>
       <td style="color:var(--muted);font-size:12px">${p.rationale}</td>
     </tr>`
@@ -658,7 +676,7 @@ function renderSitemap() {
     `<div class="add-row">
       <div class="add-num">${i+1}</div>
       <div style="flex:1">
-        <div class="add-name">${p.name} <span class="url-chip">${p.url}</span></div>
+        <div class="add-name">${p.name} <span class="url-chip">${p.url}</span> <span style="font-size:11px;color:var(--muted)">nav: ${p.navSection||'—'}</span></div>
         <div class="add-rat">${p.rationale}</div>
       </div>
       <span class="${p.value==='high'?'val-high':'val-med'}">${p.value==='high'?'↑ High value':'Medium'}</span>
@@ -667,30 +685,170 @@ function renderSitemap() {
 }
 
 function exportSitemap() {
-  const lines = ['MMW SITEMAP — ' + (S.parsedData.practiceName||'Client'), new Date().toLocaleDateString(), ''];
+  const d = S.parsedData;
+  const name = d.practiceName || 'Client';
+
+  // Build nav structure preview
+  const navSections = ['Home','About','Services','Resources','Contact'];
+  const navMap = {};
+  navSections.forEach(s => navMap[s] = []);
   S.sitemap.pages.forEach(p => {
-    lines.push(p.number + '. ' + p.name);
-    lines.push('   URL: ' + p.url);
-    lines.push('   Type: ' + p.type);
-    lines.push('   Rationale: ' + p.rationale);
-    lines.push('');
+    const sec = p.navSection || 'Other';
+    if (!navMap[sec]) navMap[sec] = [];
+    navMap[sec].push(p.name);
   });
-  lines.push('=== ADDITIONAL PAGE RECOMMENDATIONS ===', '');
+
+  // CSV rows
+  const rows = [];
+
+  // Section 1: Nav structure preview
+  rows.push(['NAV STRUCTURE PREVIEW','','','','','']);
+  rows.push(['Nav Item','Sub-pages','','','','']);
+  navSections.forEach(sec => {
+    const pages = navMap[sec] || [];
+    if (sec === 'Services' || sec === 'Resources') {
+      rows.push([sec, pages.join(' | '), '','','','']);
+    } else {
+      rows.push([sec, pages[0] || sec, '','','','']);
+    }
+  });
+  rows.push(['','','','','','']);
+
+  // Section 2: Full sitemap
+  rows.push(['STANDARD PAGES (10)','','','','','']);
+  rows.push(['#','Page Name','URL','Nav Section','Type','Rationale']);
+  S.sitemap.pages.forEach(p => {
+    rows.push([p.number, p.name, p.url, p.navSection||'', p.type, p.rationale]);
+  });
+  rows.push(['','','','','','']);
+
+  // Section 3: Additional pages
+  rows.push(['RECOMMENDED ADDITIONAL PAGES','','','','','']);
+  rows.push(['Priority','Page Name','URL','Nav Section','Value','Rationale']);
   S.sitemap.additionalPages.forEach((p,i) => {
-    lines.push((i+1) + '. ' + p.name + ' [' + p.value + ' value]');
-    lines.push('   URL: ' + p.url);
-    lines.push('   ' + p.rationale);
-    lines.push('');
+    rows.push([i+1, p.name, p.url, p.navSection||'', p.value, p.rationale]);
   });
-  dl(lines.join('\n'), (S.parsedData.practiceName||'client').replace(/\s+/g,'_') + '_sitemap.txt');
+
+  // Convert to CSV string
+  const csv = rows.map(row =>
+    row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')
+  ).join('\n');
+
+  dl(csv, name.replace(/\s+/g,'_') + '_sitemap.csv');
+}
+
+function parseCSVLine(line) {
+  const cells = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuote && line[i+1] === '"') { cur += '"'; i++; }
+      else inQuote = !inQuote;
+    } else if (ch === ',' && !inQuote) {
+      cells.push(cur.trim()); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  cells.push(cur.trim());
+  return cells;
 }
 
 function reuploadSitemap(e) {
   const file = e.target.files[0]; if (!file) return;
-  const notice = document.createElement('div');
-  notice.className = 'notice notice-ok'; notice.style.marginBottom = '12px';
-  notice.textContent = '✓ Updated sitemap uploaded. Click "Approve & generate copy" to proceed.';
-  document.getElementById('step-3').insertBefore(notice, document.querySelector('#step-3 .card'));
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const lines = ev.target.result.split('\n').map(l => l.trim()).filter(l => l);
+      const pages = [];
+      const additionalPages = [];
+      let section = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const cells = parseCSVLine(lines[i]);
+        const first = cells[0] || '';
+
+        // Detect section headers
+        if (first === 'STANDARD PAGES (10)') { section = 'standard'; continue; }
+        if (first === 'RECOMMENDED ADDITIONAL PAGES') { section = 'additional'; continue; }
+        if (first === 'NAV STRUCTURE PREVIEW') { section = 'nav'; continue; }
+
+        // Skip column header rows
+        if (first === '#' || first === 'Priority' || first === 'Nav Item') continue;
+        // Skip empty or section-label-only rows
+        if (!cells[1]) continue;
+
+        if (section === 'standard') {
+          const num = parseInt(first);
+          if (!isNaN(num) && cells[1]) {
+            pages.push({
+              number: num,
+              name: cells[1] || '',
+              url: cells[2] || '',
+              navSection: cells[3] || '',
+              type: cells[4] || 'service',
+              rationale: cells[5] || ''
+            });
+          }
+        } else if (section === 'additional') {
+          const pri = parseInt(first);
+          if (!isNaN(pri) && cells[1]) {
+            additionalPages.push({
+              priority: pri,
+              name: cells[1] || '',
+              url: cells[2] || '',
+              navSection: cells[3] || '',
+              value: cells[4] || 'medium',
+              rationale: cells[5] || ''
+            });
+          }
+        }
+      }
+
+      if (pages.length === 0) {
+        throw new Error('No pages found — make sure you are uploading the exported sitemap CSV without changing the column structure.');
+      }
+
+      // Show diff before applying
+      const oldUrls = S.sitemap.pages.map(p => p.url);
+      const newUrls = pages.map(p => p.url);
+      const added = newUrls.filter(u => !oldUrls.includes(u));
+      const removed = oldUrls.filter(u => !newUrls.includes(u));
+
+      // Apply changes
+      S.sitemap.pages = pages;
+      S.sitemap.additionalPages = additionalPages;
+      renderSitemap();
+
+      // Remove any previous notices
+      document.querySelectorAll('.reupload-notice').forEach(n => n.remove());
+
+      // Build diff summary
+      let diffMsg = `✓ Sitemap updated — ${pages.length} pages loaded.`;
+      if (added.length || removed.length) {
+        diffMsg += ' Changes: ';
+        if (added.length) diffMsg += `${added.length} page(s) added (${added.join(', ')}). `;
+        if (removed.length) diffMsg += `${removed.length} page(s) removed (${removed.join(', ')}).`;
+      } else {
+        diffMsg += ' No structural changes detected (edits to names, URLs, or rationale applied).';
+      }
+
+      const notice = document.createElement('div');
+      notice.className = 'notice notice-ok reupload-notice';
+      notice.style.marginBottom = '12px';
+      notice.textContent = diffMsg;
+      document.getElementById('step-3').insertBefore(notice, document.querySelector('#step-3 .card'));
+
+    } catch(err) {
+      const notice = document.createElement('div');
+      notice.className = 'notice notice-danger reupload-notice';
+      notice.style.marginBottom = '12px';
+      notice.textContent = 'Could not parse sitemap: ' + err.message;
+      document.getElementById('step-3').insertBefore(notice, document.querySelector('#step-3 .card'));
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ── Copy generation ───────────────────────────────────────────────────────────
